@@ -1,0 +1,47 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import pandas as pd
+import csv
+import os
+
+# 설정
+DATA_FOLDER = "majors"
+EMAILS_CSV_FILE = "subscribers.csv"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_SENDER = "your-email@example.com"
+EMAIL_PASSWORD = "your-password"
+
+def send_custom_emails():
+    with open(EMAILS_CSV_FILE, 'r', newline='') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            email = row['Email']
+            major = row['Major']
+            send_email_with_major_info(email, major)
+
+def send_email_with_major_info(email, major):
+    csv_file = os.path.join(DATA_FOLDER, f"{major}.csv")
+    if os.path.exists(csv_file):
+        df = pd.read_csv(csv_file)
+        html_content = df.to_html()
+        subject = f"Latest Job Listings for {major}"
+        send_email(email, subject, html_content)
+
+def send_email(email, subject, html_content):
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = EMAIL_SENDER
+    msg['To'] = email
+    part = MIMEText(html_content, 'html')
+    msg.attach(part)
+
+    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    server.starttls()
+    server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+    server.sendmail(EMAIL_SENDER, [email], msg.as_string())
+    server.quit()
+
+if __name__ == '__main__':
+    send_custom_emails()
